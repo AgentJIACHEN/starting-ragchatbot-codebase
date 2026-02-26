@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot - Query Flow Diagram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-frontend: #3b82f6;
+            --color-frontend-light: #60a5fa;
+            --color-frontend-dark: #1d4ed8;
+            --color-backend: #10b981;
+            --color-backend-light: #34d399;
+            --color-backend-dark: #059669;
+            --color-ai: #a855f7;
+            --color-ai-light: #c084fc;
+            --color-ai-dark: #7c3aed;
+            --color-db: #f59e0b;
+            --color-db-light: #fbbf24;
+            --color-db-dark: #d97706;
+            --bg-primary: #0f0f14;
+            --bg-secondary: #1a1a24;
+            --bg-tertiary: #252532;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-color: #353545;
+            --glow-frontend: rgba(59, 130, 246, 0.3);
+            --glow-backend: rgba(16, 185, 129, 0.3);
+            --glow-ai: rgba(168, 85, 247, 0.3);
+            --glow-db: rgba(245, 158, 11, 0.3);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: auto;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--color-frontend), var(--color-ai), var(--color-backend));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.frontend { background: var(--color-frontend); box-shadow: 0 0 12px var(--glow-frontend); }
+        .legend-dot.backend { background: var(--color-backend); box-shadow: 0 0 12px var(--glow-backend); }
+        .legend-dot.ai { background: var(--color-ai); box-shadow: 0 0 12px var(--glow-ai); }
+        .legend-dot.db { background: var(--color-db); box-shadow: 0 0 12px var(--glow-db); }
+
+        .diagram {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            position: relative;
+        }
+
+        .layer {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .layer-label {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            white-space: nowrap;
+        }
+
+        .layer-label.frontend { color: var(--color-frontend-light); }
+        .layer-label.backend { color: var(--color-backend-light); }
+        .layer-label.ai { color: var(--color-ai-light); }
+        .layer-label.db { color: var(--color-db-light); }
+
+        .node {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .node:hover {
+            transform: translateY(-2px);
+        }
+
+        .node.frontend {
+            border-color: var(--color-frontend-dark);
+            box-shadow: 0 0 0 1px var(--glow-frontend), 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .node.frontend:hover {
+            box-shadow: 0 0 0 1px var(--color-frontend), 0 0 30px var(--glow-frontend);
+        }
+
+        .node.backend {
+            border-color: var(--color-backend-dark);
+            box-shadow: 0 0 0 1px var(--glow-backend), 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .node.backend:hover {
+            box-shadow: 0 0 0 1px var(--color-backend), 0 0 30px var(--glow-backend);
+        }
+
+        .node.ai {
+            border-color: var(--color-ai-dark);
+            box-shadow: 0 0 0 1px var(--glow-ai), 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .node.ai:hover {
+            box-shadow: 0 0 0 1px var(--color-ai), 0 0 30px var(--glow-ai);
+        }
+
+        .node.db {
+            border-color: var(--color-db-dark);
+            box-shadow: 0 0 0 1px var(--glow-db), 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .node.db:hover {
+            box-shadow: 0 0 0 1px var(--color-db), 0 0 30px var(--glow-db);
+        }
+
+        .node-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+
+        .node.frontend .node-icon { background: var(--color-frontend-dark); }
+        .node.backend .node-icon { background: var(--color-backend-dark); }
+        .node.ai .node-icon { background: var(--color-ai-dark); }
+        .node.db .node-icon { background: var(--color-db-dark); }
+
+        .node-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .node-file {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .node-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .step-number.frontend { border-color: var(--color-frontend); color: var(--color-frontend-light); }
+        .step-number.backend { border-color: var(--color-backend); color: var(--color-backend-light); }
+        .step-number.ai { border-color: var(--color-ai); color: var(--color-ai-light); }
+        .step-number.db { border-color: var(--color-db); color: var(--color-db-light); }
+
+        .arrows {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .arrow-line {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 2;
+            stroke-dasharray: 5 5;
+            animation: flow 1s linear infinite;
+        }
+
+        .arrow-line.request {
+            stroke: var(--color-frontend);
+            stroke-dasharray: none;
+        }
+
+        .arrow-line.response {
+            stroke: var(--color-backend);
+            stroke-dasharray: none;
+        }
+
+        @keyframes flow {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+
+        .connection-info {
+            position: absolute;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            background: var(--bg-primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .data-flow {
+            margin-top: 60px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .data-flow h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            border-left: 3px solid;
+        }
+
+        .flow-step.frontend { border-color: var(--color-frontend); }
+        .flow-step.backend { border-color: var(--color-backend); }
+        .flow-step.ai { border-color: var(--color-ai); }
+        .flow-step.db { border-color: var(--color-db); }
+
+        .flow-step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .flow-step.frontend .flow-step-number { background: var(--color-frontend-dark); color: white; }
+        .flow-step.backend .flow-step-number { background: var(--color-backend-dark); color: white; }
+        .flow-step.ai .flow-step-number { background: var(--color-ai-dark); color: white; }
+        .flow-step.db .flow-step-number { background: var(--color-db-dark); color: white; }
+
+        .flow-step-content {
+            flex: 1;
+        }
+
+        .flow-step-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .flow-step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .flow-step-file {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        @media (max-width: 1200px) {
+            .diagram {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .diagram {
+                grid-template-columns: 1fr;
+            }
+
+            .legend {
+                gap: 16px;
+            }
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: var(--color-frontend);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 15s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(100px, -50px); }
+            50% { transform: translate(-50px, 100px); }
+            75% { transform: translate(50px, 50px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="particle" style="top: 20%; left: 10%;"></div>
+    <div class="particle" style="top: 60%; left: 80%; animation-delay: -5s;"></div>
+    <div class="particle" style="top: 80%; left: 30%; animation-delay: -10s;"></div>
+
+    <div class="container">
+        <header class="header">
+            <h1>RAG Chatbot Query Flow</h1>
+            <p>End-to-end request/response pipeline through the system</p>
+        </header>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot frontend"></div>
+                <span>Frontend Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot backend"></div>
+                <span>Backend Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot ai"></div>
+                <span>AI/ML Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot db"></div>
+                <span>Database Layer</span>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <!-- Frontend Layer -->
+            <div class="layer">
+                <div class="layer-label frontend">Frontend</div>
+                <div class="node frontend">
+                    <div class="step-number frontend">1</div>
+                    <div class="node-icon">👤</div>
+                    <div class="node-title">User Input</div>
+                    <div class="node-file">script.js:45</div>
+                    <div class="node-desc">User types query, sendMessage() triggered</div>
+                </div>
+                <div class="node frontend">
+                    <div class="step-number frontend">12</div>
+                    <div class="node-icon">🖥️</div>
+                    <div class="node-title">Display Response</div>
+                    <div class="node-file">script.js:113</div>
+                    <div class="node-desc">Parse JSON, render markdown, show sources</div>
+                </div>
+            </div>
+
+            <!-- Backend Layer -->
+            <div class="layer">
+                <div class="layer-label backend">Backend</div>
+                <div class="node backend">
+                    <div class="step-number backend">2</div>
+                    <div class="node-icon">🔌</div>
+                    <div class="node-title">FastAPI Endpoint</div>
+                    <div class="node-file">app.py:56</div>
+                    <div class="node-desc">POST /api/query receives request</div>
+                </div>
+                <div class="node backend">
+                    <div class="step-number backend">3</div>
+                    <div class="node-icon">📋</div>
+                    <div class="node-title">Session Manager</div>
+                    <div class="node-file">session_manager.py:18</div>
+                    <div class="node-desc">Create/retrieve session, get history</div>
+                </div>
+                <div class="node backend">
+                    <div class="step-number backend">4</div>
+                    <div class="node-icon">🎯</div>
+                    <div class="node-title">RAG Orchestrator</div>
+                    <div class="node-file">rag_system.py:102</div>
+                    <div class="node-desc">Query system, build prompt, manage flow</div>
+                </div>
+                <div class="node backend">
+                    <div class="step-number backend">11</div>
+                    <div class="node-icon">📤</div>
+                    <div class="node-title">Return Response</div>
+                    <div class="node-file">app.py:68</div>
+                    <div class="node-desc">QueryResponse with answer, sources, session_id</div>
+                </div>
+            </div>
+
+            <!-- AI/ML Layer -->
+            <div class="layer">
+                <div class="layer-label ai">AI/ML</div>
+                <div class="node ai">
+                    <div class="step-number ai">5</div>
+                    <div class="node-icon">🤖</div>
+                    <div class="node-title">AI Generator</div>
+                    <div class="node-file">ai_generator.py:43</div>
+                    <div class="node-desc">Call Claude API with tools</div>
+                </div>
+                <div class="node ai">
+                    <div class="step-number ai">6</div>
+                    <div class="node-icon">🧠</div>
+                    <div class="node-title">Claude API</div>
+                    <div class="node-file">anthropic</div>
+                    <div class="node-desc">Process query, decide tool use</div>
+                </div>
+                <div class="node ai">
+                    <div class="step-number ai">9</div>
+                    <div class="node-icon">🔧</div>
+                    <div class="node-title">Tool Manager</div>
+                    <div class="node-file">search_tools.py:135</div>
+                    <div class="node-desc">Execute search_course_content tool</div>
+                </div>
+                <div class="node ai">
+                    <div class="step-number ai">10</div>
+                    <div class="node-icon">💬</div>
+                    <div class="node-title">Final Response</div>
+                    <div class="node-file">ai_generator.py:134</div>
+                    <div class="node-desc">Synthesize answer from search results</div>
+                </div>
+            </div>
+
+            <!-- Database Layer -->
+            <div class="layer">
+                <div class="layer-label db">Database</div>
+                <div class="node db">
+                    <div class="step-number db">7</div>
+                    <div class="node-icon">🔍</div>
+                    <div class="node-title">Vector Store</div>
+                    <div class="node-file">vector_store.py:61</div>
+                    <div class="node-desc">Search with query + filters</div>
+                </div>
+                <div class="node db">
+                    <div class="step-number db">8</div>
+                    <div class="node-icon">📊</div>
+                    <div class="node-title">ChromaDB</div>
+                    <div class="node-file">chromadb</div>
+                    <div class="node-desc">Semantic similarity search on embeddings</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-flow">
+            <h2>Detailed Flow Sequence</h2>
+            <div class="flow-steps">
+                <div class="flow-step frontend">
+                    <div class="flow-step-number">1</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">User Input</div>
+                        <div class="flow-step-desc">User types query in chat interface, sendMessage() triggered</div>
+                        <div class="flow-step-file">script.js:45 → fetch('/api/query', POST)</div>
+                    </div>
+                </div>
+
+                <div class="flow-step backend">
+                    <div class="flow-step-number">2</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">FastAPI Endpoint</div>
+                        <div class="flow-step-desc">POST /api/query receives {query, session_id}</div>
+                        <div class="flow-step-file">app.py:56 → QueryRequest validation</div>
+                    </div>
+                </div>
+
+                <div class="flow-step backend">
+                    <div class="flow-step-number">3</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Session Management</div>
+                        <div class="flow-step-desc">Create new session if needed, retrieve conversation history</div>
+                        <div class="flow-step-file">session_manager.py:18,42 → get_conversation_history()</div>
+                    </div>
+                </div>
+
+                <div class="flow-step backend">
+                    <div class="flow-step-number">4</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">RAG System Query</div>
+                        <div class="flow-step-desc">Orchestrate query with history context</div>
+                        <div class="flow-step-file">rag_system.py:102 → ai_generator.generate_response()</div>
+                    </div>
+                </div>
+
+                <div class="flow-step ai">
+                    <div class="flow-step-number">5</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">AI Generator</div>
+                        <div class="flow-step-desc">Build prompt with system instructions, pass tools to Claude</div>
+                        <div class="flow-step-file">ai_generator.py:43 → client.messages.create(tools=[...])</div>
+                    </div>
+                </div>
+
+                <div class="flow-step ai">
+                    <div class="flow-step-number">6</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Claude API Decision</div>
+                        <div class="flow-step-desc">Claude analyzes query and decides to use search_course_content tool</div>
+                        <div class="flow-step-file">anthropic API → stop_reason="tool_use"</div>
+                    </div>
+                </div>
+
+                <div class="flow-step db">
+                    <div class="flow-step-number">7</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Vector Store Search</div>
+                        <div class="flow-step-desc">Execute semantic search with optional course/lesson filters</div>
+                        <div class="flow-step-file">vector_store.py:61 → search(query, course_name, lesson_number)</div>
+                    </div>
+                </div>
+
+                <div class="flow-step db">
+                    <div class="flow-step-number">8</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">ChromaDB Query</div>
+                        <div class="flow-step-desc">Find similar chunks using sentence-transformer embeddings</div>
+                        <div class="flow-step-file">ChromaDB → course_content.query(n_results=5)</div>
+                    </div>
+                </div>
+
+                <div class="flow-step ai">
+                    <div class="flow-step-number">9</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Tool Execution</div>
+                        <div class="flow-step-desc">CourseSearchTool formats results with course/lesson context</div>
+                        <div class="flow-step-file">search_tools.py:52 → _format_results() → return to Claude</div>
+                    </div>
+                </div>
+
+                <div class="flow-step ai">
+                    <div class="flow-step-number">10</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Final AI Response</div>
+                        <div class="flow-step-desc">Claude synthesizes answer using retrieved context</div>
+                        <div class="flow-step-file">ai_generator.py:134 → return final_response.content[0].text</div>
+                    </div>
+                </div>
+
+                <div class="flow-step backend">
+                    <div class="flow-step-number">11</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Build Response</div>
+                        <div class="flow-step-desc">Extract sources from tool_manager, return QueryResponse</div>
+                        <div class="flow-step-file">app.py:68 → {answer, sources, session_id}</div>
+                    </div>
+                </div>
+
+                <div class="flow-step frontend">
+                    <div class="flow-step-number">12</div>
+                    <div class="flow-step-content">
+                        <div class="flow-step-title">Display Result</div>
+                        <div class="flow-step-desc">Parse markdown, render message with collapsible sources</div>
+                        <div class="flow-step-file">script.js:113 → addMessage() → DOM update</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add hover effects and interactivity
+        document.querySelectorAll('.node').forEach(node => {
+            node.addEventListener('mouseenter', () => {
+                // Find all nodes in same layer and dim them
+                const layer = node.closest('.layer');
+                if (layer) {
+                    layer.querySelectorAll('.node').forEach(n => {
+                        if (n !== node) n.style.opacity = '0.5';
+                    });
+                }
+            });
+
+            node.addEventListener('mouseleave', () => {
+                // Restore opacity
+                const layer = node.closest('.layer');
+                if (layer) {
+                    layer.querySelectorAll('.node').forEach(n => {
+                        n.style.opacity = '1';
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
