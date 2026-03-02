@@ -7,16 +7,17 @@ These tests verify that AIGenerator correctly:
 3. Executes tools when requested by Claude
 4. Returns appropriate responses
 """
+
 import os
 import sys
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
-import anthropic
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ai_generator import AIGenerator
-from search_tools import ToolManager, CourseSearchTool
+from search_tools import CourseSearchTool, ToolManager
 
 
 class TestAIGeneratorToolCalling:
@@ -51,10 +52,7 @@ class TestAIGeneratorToolCalling:
 
         tools = [{"name": "test_tool", "input_schema": {}}]
 
-        result = generator.generate_response(
-            query="Test query",
-            tools=tools
-        )
+        result = generator.generate_response(query="Test query", tools=tools)
 
         # Verify tools were passed to API
         call_args = mock_anthropic_client.messages.create.call_args
@@ -62,22 +60,31 @@ class TestAIGeneratorToolCalling:
         assert call_args.kwargs["tools"] == tools
         print("[PASS] Tools passed to API correctly")
 
-    def test_generate_response_triggers_tool_execution(self, mock_anthropic_client, populated_vector_store):
+    def test_generate_response_triggers_tool_execution(
+        self, mock_anthropic_client, populated_vector_store
+    ):
         """Test that tool_use stop reason triggers tool execution."""
         # Setup mock for initial tool_use response
         mock_tool_use_response = MagicMock()
         mock_tool_use_response.stop_reason = "tool_use"
         mock_tool_use_response.content = [
-            MagicMock(type="tool_use", name="search_course_content", id="tool_123", input={"query": "Python"})
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_123",
+                input={"query": "Python"},
+            )
         ]
 
         # Setup mock for final response after tool execution
         mock_final_response = MagicMock()
-        mock_final_response.content = [MagicMock(text="Based on the search, Python is a programming language.")]
+        mock_final_response.content = [
+            MagicMock(text="Based on the search, Python is a programming language.")
+        ]
 
         mock_anthropic_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response
+            mock_final_response,
         ]
 
         generator = AIGenerator("test-key", "claude-sonnet-4-20250514")
@@ -91,22 +98,27 @@ class TestAIGeneratorToolCalling:
         tools = tool_manager.get_tool_definitions()
 
         result = generator.generate_response(
-            query="Tell me about Python",
-            tools=tools,
-            tool_manager=tool_manager
+            query="Tell me about Python", tools=tools, tool_manager=tool_manager
         )
 
         # Verify tool was executed (two API calls made)
         assert mock_anthropic_client.messages.create.call_count == 2
         print(f"[PASS] Tool execution triggered, result: {result[:50]}...")
 
-    def test_handle_tool_execution_formats_messages_correctly(self, mock_anthropic_client, populated_vector_store):
+    def test_handle_tool_execution_formats_messages_correctly(
+        self, mock_anthropic_client, populated_vector_store
+    ):
         """Test that tool execution properly formats the message chain."""
         # Setup mocks
         mock_tool_use_response = MagicMock()
         mock_tool_use_response.stop_reason = "tool_use"
         mock_tool_use_response.content = [
-            MagicMock(type="tool_use", name="search_course_content", id="tool_456", input={"query": "variables"})
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_456",
+                input={"query": "variables"},
+            )
         ]
 
         mock_final_response = MagicMock()
@@ -114,7 +126,7 @@ class TestAIGeneratorToolCalling:
 
         mock_anthropic_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response
+            mock_final_response,
         ]
 
         generator = AIGenerator("test-key", "claude-sonnet-4-20250514")
@@ -127,9 +139,7 @@ class TestAIGeneratorToolCalling:
         tools = tool_manager.get_tool_definitions()
 
         result = generator.generate_response(
-            query="What are variables?",
-            tools=tools,
-            tool_manager=tool_manager
+            query="What are variables?", tools=tools, tool_manager=tool_manager
         )
 
         # Check second call has proper message structure
@@ -140,13 +150,20 @@ class TestAIGeneratorToolCalling:
         assert len(messages) >= 2  # At least initial message and tool result
         print(f"[PASS] Message chain formatted correctly with {len(messages)} messages")
 
-    def test_tool_result_contains_search_output(self, mock_anthropic_client, populated_vector_store):
+    def test_tool_result_contains_search_output(
+        self, mock_anthropic_client, populated_vector_store
+    ):
         """Test that tool_result message contains actual search output."""
         # Setup mocks
         mock_tool_use_response = MagicMock()
         mock_tool_use_response.stop_reason = "tool_use"
         mock_tool_use_response.content = [
-            MagicMock(type="tool_use", name="search_course_content", id="tool_789", input={"query": "Python"})
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_789",
+                input={"query": "Python"},
+            )
         ]
 
         mock_final_response = MagicMock()
@@ -154,7 +171,7 @@ class TestAIGeneratorToolCalling:
 
         mock_anthropic_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response
+            mock_final_response,
         ]
 
         generator = AIGenerator("test-key", "claude-sonnet-4-20250514")
@@ -167,9 +184,7 @@ class TestAIGeneratorToolCalling:
         tools = tool_manager.get_tool_definitions()
 
         result = generator.generate_response(
-            query="Test query",
-            tools=tools,
-            tool_manager=tool_manager
+            query="Test query", tools=tools, tool_manager=tool_manager
         )
 
         # Get the tool result message from second API call
@@ -185,19 +200,33 @@ class TestAIGeneratorToolCalling:
                         tool_result_found = True
                         # Tool result should contain search output
                         assert "content" in item
-                        print(f"[PASS] Tool result contains: {item['content'][:50] if item['content'] else 'empty'}...")
+                        print(
+                            f"[PASS] Tool result contains: {item['content'][:50] if item['content'] else 'empty'}..."
+                        )
 
         assert tool_result_found, "tool_result should be in messages"
         print("[PASS] Tool result contains search output")
 
-    def test_multiple_tool_calls_in_single_response(self, mock_anthropic_client, populated_vector_store):
+    def test_multiple_tool_calls_in_single_response(
+        self, mock_anthropic_client, populated_vector_store
+    ):
         """Test handling multiple tool calls in a single response."""
         # Setup mocks - Claude requests two tools
         mock_tool_use_response = MagicMock()
         mock_tool_use_response.stop_reason = "tool_use"
         mock_tool_use_response.content = [
-            MagicMock(type="tool_use", name="search_course_content", id="tool_1", input={"query": "Python"}),
-            MagicMock(type="tool_use", name="search_course_content", id="tool_2", input={"query": "variables"})
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_1",
+                input={"query": "Python"},
+            ),
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_2",
+                input={"query": "variables"},
+            ),
         ]
 
         mock_final_response = MagicMock()
@@ -205,7 +234,7 @@ class TestAIGeneratorToolCalling:
 
         mock_anthropic_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response
+            mock_final_response,
         ]
 
         generator = AIGenerator("test-key", "claude-sonnet-4-20250514")
@@ -220,7 +249,7 @@ class TestAIGeneratorToolCalling:
         result = generator.generate_response(
             query="Tell me about Python and variables",
             tools=tools,
-            tool_manager=tool_manager
+            tool_manager=tool_manager,
         )
 
         # Should have made two API calls
@@ -233,7 +262,7 @@ class TestAIGeneratorSystemPrompt:
 
     def test_system_prompt_exists(self):
         """Test that SYSTEM_PROMPT is defined."""
-        assert hasattr(AIGenerator, 'SYSTEM_PROMPT')
+        assert hasattr(AIGenerator, "SYSTEM_PROMPT")
         assert len(AIGenerator.SYSTEM_PROMPT) > 0
         print("[PASS] System prompt exists")
 
@@ -245,7 +274,9 @@ class TestAIGeneratorSystemPrompt:
         assert "tool" in prompt.lower() or "search" in prompt.lower()
         print("[PASS] System prompt includes tool instructions")
 
-    def test_conversation_history_appended_to_system_prompt(self, mock_anthropic_client):
+    def test_conversation_history_appended_to_system_prompt(
+        self, mock_anthropic_client
+    ):
         """Test that conversation history is appended to system prompt."""
         mock_response = MagicMock()
         mock_response.content = [MagicMock(text="Response")]
@@ -257,7 +288,7 @@ class TestAIGeneratorSystemPrompt:
 
         result = generator.generate_response(
             query="Follow-up question",
-            conversation_history="User: What is Python?\nAssistant: Python is a language."
+            conversation_history="User: What is Python?\nAssistant: Python is a language.",
         )
 
         # Check that system content includes history

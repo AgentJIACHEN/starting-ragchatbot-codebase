@@ -5,7 +5,9 @@ This module provides the AIGenerator class that handles communication with Anthr
 Claude API, including support for sequential tool calling where Claude can make up to
 2 tool calls in separate API rounds.
 """
-from typing import Dict, Any, Optional, List, Tuple
+
+from typing import Any
+
 import anthropic
 
 
@@ -53,9 +55,9 @@ All responses must be:
     def generate_response(
         self,
         query: str,
-        conversation_history: Optional[str] = None,
-        tools: Optional[List[Dict]] = None,
-        tool_manager: Optional[Any] = None
+        conversation_history: str | None = None,
+        tools: list[dict] | None = None,
+        tool_manager: Any | None = None,
     ) -> str:
         """
         Generate AI response with sequential tool calling support.
@@ -92,7 +94,7 @@ All responses must be:
             response = self._make_api_call(
                 messages=messages,
                 system_content=system_content,
-                tools=tools if include_tools else None
+                tools=tools if include_tools else None,
             )
 
             # TERMINATION CONDITION 1: Claude provided final text response
@@ -110,10 +112,14 @@ All responses must be:
             # TERMINATION CONDITION 3: Critical tool execution error (no results produced)
             if execution_error and not tool_results:
                 # Build error message and try to get a response anyway
-                return self._handle_tool_error(messages, response, execution_error, system_content)
+                return self._handle_tool_error(
+                    messages, response, execution_error, system_content
+                )
 
             # Update message chain for next round
-            messages = self._build_tool_result_messages(messages, response, tool_results)
+            messages = self._build_tool_result_messages(
+                messages, response, tool_results
+            )
 
             # Increment round counter
             current_round += 1
@@ -121,7 +127,7 @@ All responses must be:
         # Fallback: force final response (should not normally reach here)
         return self._make_final_response(messages, system_content)
 
-    def _build_system_content(self, conversation_history: Optional[str]) -> str:
+    def _build_system_content(self, conversation_history: str | None) -> str:
         """
         Build system content with optional conversation history.
 
@@ -137,10 +143,7 @@ All responses must be:
         return content
 
     def _make_api_call(
-        self,
-        messages: List[Dict],
-        system_content: str,
-        tools: Optional[List[Dict]] = None
+        self, messages: list[dict], system_content: str, tools: list[dict] | None = None
     ) -> Any:
         """
         Execute API call with consistent parameters.
@@ -158,7 +161,7 @@ All responses must be:
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
             "system": system_content,
-            "messages": messages
+            "messages": messages,
         }
 
         if tools:
@@ -178,15 +181,13 @@ All responses must be:
             Extracted text string or empty string if no text found
         """
         for block in response.content:
-            if hasattr(block, 'text'):
+            if hasattr(block, "text"):
                 return block.text
         return ""
 
     def _execute_tools(
-        self,
-        response: Any,
-        tool_manager: Optional[Any]
-    ) -> Tuple[List[Dict], Optional[str]]:
+        self, response: Any, tool_manager: Any | None
+    ) -> tuple[list[dict], str | None]:
         """
         Execute all tool calls in the response.
 
@@ -207,22 +208,25 @@ All responses must be:
             if block.type == "tool_use":
                 try:
                     result = tool_manager.execute_tool(
-                        tool_name=block.name,
-                        **block.input
+                        tool_name=block.name, **block.input
                     )
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result,
+                        }
+                    )
                 except Exception as e:
                     error_msg = f"Error executing {block.name}: {str(e)}"
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": error_msg,
-                        "is_error": True
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": error_msg,
+                            "is_error": True,
+                        }
+                    )
                     # Track error but continue executing other tools
                     critical_error = error_msg
 
@@ -230,11 +234,8 @@ All responses must be:
         return tool_results, critical_error if not tool_results else None
 
     def _build_tool_result_messages(
-        self,
-        messages: List[Dict],
-        response: Any,
-        tool_results: List[Dict]
-    ) -> List[Dict]:
+        self, messages: list[dict], response: Any, tool_results: list[dict]
+    ) -> list[dict]:
         """
         Append assistant's tool_use and user's tool_result to message chain.
 
@@ -253,32 +254,24 @@ All responses must be:
         assistant_content = []
         for block in response.content:
             if block.type == "tool_use":
-                assistant_content.append({
-                    "type": "tool_use",
-                    "id": block.id,
-                    "name": block.name,
-                    "input": block.input
-                })
+                assistant_content.append(
+                    {
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input,
+                    }
+                )
 
         # Append assistant message with tool_use blocks
-        messages.append({
-            "role": "assistant",
-            "content": assistant_content
-        })
+        messages.append({"role": "assistant", "content": assistant_content})
 
         # Append user message with tool_results
-        messages.append({
-            "role": "user",
-            "content": tool_results
-        })
+        messages.append({"role": "user", "content": tool_results})
 
         return messages
 
-    def _make_final_response(
-        self,
-        messages: List[Dict],
-        system_content: str
-    ) -> str:
+    def _make_final_response(self, messages: list[dict], system_content: str) -> str:
         """
         Make final API call without tools to force text response.
 
@@ -293,18 +286,12 @@ All responses must be:
             Final text response
         """
         response = self._make_api_call(
-            messages=messages,
-            system_content=system_content,
-            tools=None
+            messages=messages, system_content=system_content, tools=None
         )
         return self._extract_text(response)
 
     def _handle_tool_error(
-        self,
-        messages: List[Dict],
-        response: Any,
-        error: str,
-        system_content: str
+        self, messages: list[dict], response: Any, error: str, system_content: str
     ) -> str:
         """
         Handle critical tool execution errors gracefully.
@@ -327,7 +314,7 @@ All responses must be:
             "type": "tool_result",
             "tool_use_id": response.content[0].id if response.content else "unknown",
             "content": f"Tool execution failed: {error}",
-            "is_error": True
+            "is_error": True,
         }
 
         # Update messages with error

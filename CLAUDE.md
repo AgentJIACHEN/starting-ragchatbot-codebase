@@ -28,14 +28,32 @@ run.bat            # Windows
 # Or manually:
 cd backend && uv run uvicorn app:app --reload --port 8000
 
-# Lint code
-uv run ruff check backend/
+# Run all quality checks (format + lint)
+./scripts/quality.sh           # macOS/Linux
+scripts\quality.bat            # Windows
 
-# Format code
-uv run ruff format backend/
+# Or individual commands:
+uv run ruff check backend/     # Lint code
+uv run ruff format backend/    # Format code
+uv run pytest                  # Run tests
+```
 
-# Run tests (when available)
-uv run pytest
+### Quality Scripts
+
+The project includes convenience scripts for code quality:
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/quality.sh` (Unix) / `scripts/quality.bat` (Windows) | Run all quality checks |
+| `scripts/format.sh` / `scripts/format.bat` | Format code with ruff |
+| `scripts/lint.sh` / `scripts/lint.bat` | Run linting checks |
+
+**Quality script options:**
+```bash
+./scripts/quality.sh           # Check formatting and lint (read-only)
+./scripts/quality.sh --fix     # Auto-fix formatting and lint issues
+./scripts/quality.sh --test    # Include tests in the check
+./scripts/quality.sh --all     # Run format, lint, and tests
 ```
 
 The application runs at http://localhost:8000 with API docs at http://localhost:8000/docs

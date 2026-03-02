@@ -7,15 +7,17 @@ These tests verify that RAGSystem correctly:
 3. Integrates tools with AI generation
 4. Returns responses with sources
 """
+
 import os
 import sys
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rag_system import RAGSystem
-from search_tools import ToolManager, CourseSearchTool
+from search_tools import CourseSearchTool, ToolManager
 
 
 class TestRAGSystemInitialization:
@@ -25,9 +27,10 @@ class TestRAGSystemInitialization:
         """Test that RAGSystem creates all required components."""
         mock_config.CHROMA_PATH = temp_chroma_path
 
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
-
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
             MockVectorStore.return_value = MagicMock()
             MockAIGenerator.return_value = MagicMock()
 
@@ -45,9 +48,10 @@ class TestRAGSystemInitialization:
         """Test that CourseSearchTool is registered with ToolManager."""
         mock_config.CHROMA_PATH = temp_chroma_path
 
-        with patch('rag_system.VectorStore') as MockVectorStore, \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
-
+        with (
+            patch("rag_system.VectorStore") as MockVectorStore,
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
             MockVectorStore.return_value = MagicMock()
             MockAIGenerator.return_value = MagicMock()
 
@@ -71,15 +75,18 @@ class TestRAGSystemQuery:
         mock_session_manager = MagicMock()
 
         # Setup AI generator to return response
-        mock_ai_generator.generate_response.return_value = "Python is a programming language."
+        mock_ai_generator.generate_response.return_value = (
+            "Python is a programming language."
+        )
 
         # Setup session manager
         mock_session_manager.get_conversation_history.return_value = None
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             response, sources = rag.query("What is Python?")
@@ -98,10 +105,11 @@ class TestRAGSystemQuery:
         mock_session_manager = MagicMock()
         mock_session_manager.get_conversation_history.return_value = None
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             response, sources = rag.query("Test query")
@@ -120,18 +128,23 @@ class TestRAGSystemQuery:
         mock_ai_generator = MagicMock()
         mock_ai_generator.generate_response.return_value = "Response"
         mock_session_manager = MagicMock()
-        mock_session_manager.get_conversation_history.return_value = "User: Previous question\nAssistant: Previous answer"
+        mock_session_manager.get_conversation_history.return_value = (
+            "User: Previous question\nAssistant: Previous answer"
+        )
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             response, sources = rag.query("Follow-up question", session_id="session_1")
 
             # Verify conversation history was retrieved
-            mock_session_manager.get_conversation_history.assert_called_once_with("session_1")
+            mock_session_manager.get_conversation_history.assert_called_once_with(
+                "session_1"
+            )
             print("[PASS] Session context included in query")
 
     def test_query_updates_conversation_history(self, mock_config, temp_chroma_path):
@@ -144,10 +157,11 @@ class TestRAGSystemQuery:
         mock_session_manager = MagicMock()
         mock_session_manager.get_conversation_history.return_value = None
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             response, sources = rag.query("User question", session_id="session_1")
@@ -158,7 +172,9 @@ class TestRAGSystemQuery:
             )
             print("[PASS] Conversation history updated")
 
-    def test_query_retrieves_sources_from_tool_manager(self, mock_config, temp_chroma_path):
+    def test_query_retrieves_sources_from_tool_manager(
+        self, mock_config, temp_chroma_path
+    ):
         """Test that query retrieves sources from tool manager after generation."""
         mock_config.CHROMA_PATH = temp_chroma_path
 
@@ -168,16 +184,23 @@ class TestRAGSystemQuery:
         mock_session_manager = MagicMock()
         mock_session_manager.get_conversation_history.return_value = None
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             # Mock the tool manager's get_last_sources
-            rag.tool_manager.get_last_sources = MagicMock(return_value=[
-                {"course_title": "Python Course", "lesson_number": 1, "display_text": "Python Course - Lesson 1"}
-            ])
+            rag.tool_manager.get_last_sources = MagicMock(
+                return_value=[
+                    {
+                        "course_title": "Python Course",
+                        "lesson_number": 1,
+                        "display_text": "Python Course - Lesson 1",
+                    }
+                ]
+            )
 
             response, sources = rag.query("Test query")
 
@@ -195,10 +218,11 @@ class TestRAGSystemQuery:
         mock_session_manager = MagicMock()
         mock_session_manager.get_conversation_history.return_value = None
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
 
             # Mock tool manager methods
@@ -217,11 +241,10 @@ class TestRAGSystemIntegration:
 
     def test_full_query_pipeline_with_tools(self, populated_vector_store):
         """Test the full query pipeline with actual tool execution."""
-        from ai_generator import AIGenerator
-        from session_manager import SessionManager
-        from document_processor import DocumentProcessor
+
         from config import config
-        import importlib
+        from document_processor import DocumentProcessor
+        from session_manager import SessionManager
 
         # Create real components
         doc_processor = DocumentProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
@@ -239,12 +262,21 @@ class TestRAGSystemIntegration:
         mock_tool_response = MagicMock()
         mock_tool_response.stop_reason = "tool_use"
         mock_tool_response.content = [
-            MagicMock(type="tool_use", name="search_course_content", id="tool_1", input={"query": "Python"})
+            MagicMock(
+                type="tool_use",
+                name="search_course_content",
+                id="tool_1",
+                input={"query": "Python"},
+            )
         ]
 
         # Second call: Claude provides final answer after seeing tool results
         mock_final_response = MagicMock()
-        mock_final_response.content = [MagicMock(text="Based on the course materials, Python is a versatile programming language.")]
+        mock_final_response.content = [
+            MagicMock(
+                text="Based on the course materials, Python is a versatile programming language."
+            )
+        ]
 
         mock_ai_generator.generate_response.side_effect = [
             # First call returns tool request (handled internally)
@@ -263,9 +295,9 @@ class TestRAGSystemIntegration:
 
     def test_query_without_session_id(self, populated_vector_store):
         """Test query works without a session ID."""
-        from session_manager import SessionManager
-        from document_processor import DocumentProcessor
         from config import config
+        from document_processor import DocumentProcessor
+        from session_manager import SessionManager
 
         doc_processor = DocumentProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
         session_manager = SessionManager(config.MAX_HISTORY)
@@ -294,7 +326,7 @@ class TestRAGSystemIntegration:
             query="Answer this question about course materials: What is Python?",
             conversation_history=None,
             tools=tool_manager.get_tool_definitions(),
-            tool_manager=tool_manager
+            tool_manager=tool_manager,
         )
 
         assert response == "Response"
@@ -311,21 +343,18 @@ class TestRAGSystemErrorHandling:
         # Create a mock vector store that returns empty results
         mock_vector_store = MagicMock()
         mock_vector_store.search.return_value = MagicMock(
-            documents=[],
-            metadata=[],
-            distances=[],
-            error=None,
-            is_empty=lambda: True
+            documents=[], metadata=[], distances=[], error=None, is_empty=lambda: True
         )
 
         mock_ai_generator = MagicMock()
         mock_ai_generator.generate_response.return_value = "No relevant content found."
         mock_session_manager = MagicMock()
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator', return_value=mock_ai_generator), \
-             patch('rag_system.SessionManager', return_value=mock_session_manager):
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator", return_value=mock_ai_generator),
+            patch("rag_system.SessionManager", return_value=mock_session_manager),
+        ):
             rag = RAGSystem(mock_config)
             response, sources = rag.query("Test query")
 
@@ -340,7 +369,7 @@ class TestRAGSystemErrorHandling:
         mock_tool = MagicMock()
         mock_tool.get_tool_definition.return_value = {
             "name": "search_course_content",
-            "input_schema": {"type": "object", "properties": {}}
+            "input_schema": {"type": "object", "properties": {}},
         }
         mock_tool.execute.return_value = "Error: Search failed due to invalid query"
 
@@ -348,7 +377,9 @@ class TestRAGSystemErrorHandling:
 
         result = tool_manager.execute_tool("search_course_content", query="test")
 
-        assert "Error" in result or "error" in result.lower() or "failed" in result.lower()
+        assert (
+            "Error" in result or "error" in result.lower() or "failed" in result.lower()
+        )
         print(f"[PASS] Search error handled: {result}")
 
 
@@ -361,11 +392,15 @@ class TestRAGSystemCourseAnalytics:
 
         mock_vector_store = MagicMock()
         mock_vector_store.get_course_count.return_value = 5
-        mock_vector_store.get_existing_course_titles.return_value = ["Course 1", "Course 2"]
+        mock_vector_store.get_existing_course_titles.return_value = [
+            "Course 1",
+            "Course 2",
+        ]
 
-        with patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as MockAIGenerator:
-
+        with (
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as MockAIGenerator,
+        ):
             MockAIGenerator.return_value = MagicMock()
 
             rag = RAGSystem(mock_config)

@@ -1,18 +1,17 @@
 """
 Test configuration and shared fixtures for the RAG system tests.
 """
+
 import os
+import shutil
 import sys
 import tempfile
-import shutil
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from chromadb.config import Settings
-import chromadb
 
 
 @pytest.fixture
@@ -30,9 +29,7 @@ def mock_vector_store(temp_chroma_path):
     from vector_store import VectorStore
 
     store = VectorStore(
-        chroma_path=temp_chroma_path,
-        embedding_model="all-MiniLM-L6-v2",
-        max_results=5
+        chroma_path=temp_chroma_path, embedding_model="all-MiniLM-L6-v2", max_results=5
     )
     return store
 
@@ -47,9 +44,17 @@ def sample_course():
         course_link="https://example.com/python",
         instructor="John Doe",
         lessons=[
-            Lesson(lesson_number=1, title="Getting Started", lesson_link="https://example.com/lesson1"),
-            Lesson(lesson_number=2, title="Variables and Types", lesson_link="https://example.com/lesson2"),
-        ]
+            Lesson(
+                lesson_number=1,
+                title="Getting Started",
+                lesson_link="https://example.com/lesson1",
+            ),
+            Lesson(
+                lesson_number=2,
+                title="Variables and Types",
+                lesson_link="https://example.com/lesson2",
+            ),
+        ],
     )
 
 
@@ -63,19 +68,19 @@ def sample_chunks():
             content="Course Introduction to Python Lesson 1 content: Python is a versatile programming language used for web development, data science, and automation.",
             course_title="Introduction to Python",
             lesson_number=1,
-            chunk_index=0
+            chunk_index=0,
         ),
         CourseChunk(
             content="Course Introduction to Python Lesson 2 content: Variables in Python are containers for storing data values. Python has several data types including strings, integers, and floats.",
             course_title="Introduction to Python",
             lesson_number=2,
-            chunk_index=1
+            chunk_index=1,
         ),
         CourseChunk(
             content="Course Introduction to Python Lesson 2 content: Type conversion allows you to convert between different data types using functions like str(), int(), and float().",
             course_title="Introduction to Python",
             lesson_number=2,
-            chunk_index=2
+            chunk_index=2,
         ),
     ]
 

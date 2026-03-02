@@ -1,0 +1,91 @@
+[project]
+name = "course-rag-system"
+version = "0.1.0"
+description = "RAG system for querying course materials using semantic search and AI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.58.0",
+    "chromadb>=1.0.0",
+    "fastapi>=0.116.0",
+    "python-dotenv>=1.0.0",
+    "sentence-transformers>=3.0.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+# Ruff configuration - combined linter and formatter
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+# Files to exclude from linting/formatting
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.pyc",
+    "chroma_db",
+]
+
+# Linter settings
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort (import sorting)
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (let formatter handle it)
+    "B008",   # function call in default argument (FastAPI pattern)
+]
+
+# Per-file ignores
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"backend/app.py" = ["E402"]  # Allow module-level imports after warnings.filterwarnings
+"backend/tests/*.py" = ["F841"]  # Allow unused variables in tests (common pattern)
+
+# Import sorting configuration
+[tool.ruff.lint.isort]
+known-first-party = ["backend"]
+
+# Formatter settings (Black-compatible)
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.2",
+]

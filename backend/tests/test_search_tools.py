@@ -7,16 +7,16 @@ These tests verify that the CourseSearchTool correctly:
 3. Returns properly formatted results
 4. Handles errors gracefully
 """
+
 import os
 import sys
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from search_tools import CourseSearchTool, ToolManager
-from vector_store import VectorStore, SearchResults
-from models import Course, CourseChunk
+from vector_store import SearchResults
 
 
 class TestCourseSearchToolExecute:
@@ -60,16 +60,16 @@ class TestCourseSearchToolExecute:
         tool = CourseSearchTool(populated_vector_store)
 
         result = tool.execute(
-            query="variables",
-            course_name="Introduction to Python",
-            lesson_number=2
+            query="variables", course_name="Introduction to Python", lesson_number=2
         )
 
         assert result is not None
         assert isinstance(result, str)
         print(f"[PASS] All filters query returned: {result[:100]}...")
 
-    def test_execute_returns_no_results_message_for_empty_query(self, mock_vector_store):
+    def test_execute_returns_no_results_message_for_empty_query(
+        self, mock_vector_store
+    ):
         """Test that empty results return appropriate message."""
         tool = CourseSearchTool(mock_vector_store)
 
@@ -125,7 +125,7 @@ class TestCourseSearchToolExecute:
         assert "course_name" in definition["input_schema"]["properties"]
         assert "lesson_number" in definition["input_schema"]["properties"]
         assert definition["input_schema"]["required"] == ["query"]
-        print(f"[PASS] Tool definition structure is correct")
+        print("[PASS] Tool definition structure is correct")
 
 
 class TestToolManager:
@@ -215,9 +215,9 @@ class TestSearchResultsDataClass:
     def test_from_chroma_creates_valid_results(self):
         """Test creating SearchResults from ChromaDB output."""
         chroma_output = {
-            'documents': [["doc1", "doc2"]],
-            'metadatas': [[{"key": "value"}, {"key2": "value2"}]],
-            'distances': [[0.1, 0.2]]
+            "documents": [["doc1", "doc2"]],
+            "metadatas": [[{"key": "value"}, {"key2": "value2"}]],
+            "distances": [[0.1, 0.2]],
         }
 
         results = SearchResults.from_chroma(chroma_output)
@@ -240,7 +240,9 @@ class TestSearchResultsDataClass:
     def test_is_empty_detects_empty_results(self):
         """Test is_empty method."""
         empty_results = SearchResults(documents=[], metadata=[], distances=[])
-        non_empty_results = SearchResults(documents=["doc"], metadata=[{}], distances=[0.1])
+        non_empty_results = SearchResults(
+            documents=["doc"], metadata=[{}], distances=[0.1]
+        )
 
         assert empty_results.is_empty() is True
         assert non_empty_results.is_empty() is False

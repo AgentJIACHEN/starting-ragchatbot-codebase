@@ -4,12 +4,14 @@ Run all diagnostic tests for the RAG chatbot.
 This script runs all tests and provides a summary of which components
 are working and which need fixes.
 """
+
 import os
-import sys
 import subprocess
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def run_tests():
     """Run all tests and display results."""
@@ -25,7 +27,7 @@ def run_tests():
     result = subprocess.run(
         [sys.executable, "-m", "pytest", tests_dir, "-v", "-s", "--tb=short"],
         cwd=os.path.dirname(tests_dir),
-        capture_output=False
+        capture_output=False,
     )
 
     return result.returncode
