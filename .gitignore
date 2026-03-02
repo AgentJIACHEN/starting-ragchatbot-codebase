@@ -41,3 +41,6 @@ backend/chroma_db/
 # Logs
 *.log
 .playwright-mcp/
+
+# Claude local settings
+.claude/settings.local.json
